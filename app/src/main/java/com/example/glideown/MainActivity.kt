@@ -20,13 +20,16 @@ class MainActivity : AppCompatActivity() {
         const val TAG = "MainActivity"
     }
 
+    private val handler = Handler(Looper.getMainLooper())
+    private lateinit var thread: Thread
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         val url = "https://w7.pngwing.com/pngs/169/918/png-transparent-eren-yeager-armin-arlert-attack-on-titan-levi-mikasa-ackerman-others-black-hair-manga-fictional-character-thumbnail.png"
 
-        val imageView: ImageView = findViewById<ImageView>(R.id.imageView)
+        val imageView: ImageView = findViewById(R.id.imageView)
         val progressBar: ProgressBar = findViewById(R.id.progress_circular)
 
         loadImage(url, onSuccess = {
@@ -44,16 +47,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun loadImage(url: String, onSuccess : (Bitmap)->Unit, onFailure : (String) -> Unit){
 
-        val handler = Handler(Looper.getMainLooper())
 
         val progressBar: ProgressBar = findViewById(R.id.progress_circular)
 
         progressBar.visibility = View.VISIBLE
 
 
-        Thread {
+        thread = Thread {
             Log.d(TAG, "Inside thread ${Thread.currentThread().name}")
 
+            if(thread.isInterrupted){
+                return@Thread
+            }
             val connection = URL(url).openConnection()
             connection.connect()
             val inputStream = connection.getInputStream()
@@ -68,6 +73,17 @@ class MainActivity : AppCompatActivity() {
                 onFailure.invoke("Bitamp Fetching Failed")
             }
 
-        }.start()
+        }
+
+        thread.start();
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        handler.removeCallbacksAndMessages(null)
+        if(::thread.isInitialized)
+            thread.interrupt()
+
+
     }
 }
